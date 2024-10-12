@@ -13,11 +13,38 @@ struct UseCaseMacro: PeerMacro {
         
         // Ensure the macro is applied to a struct
         guard let structDecl = declaration.as(StructDeclSyntax.self) else {
+            
+            // Check if the macro is applied to a class
+            if let classDecl = declaration.as(ClassDeclSyntax.self) {
+                
+                // Add a FixIt to suggest replacing `class` with `struct`
+                let fixIt = FixIt(
+                    message: UseCaseFixItMessage.replaceClassWithStruct,
+                    changes: [
+                        FixIt.Change.replace(
+                            oldNode: Syntax(classDecl.classKeyword),
+                            newNode: Syntax(TokenSyntax.keyword(.struct))
+                        )
+                    ]
+                )
+                
+                // Attach the diagnostic with the FixIt to the context
+                let diagnostic = Diagnostic(
+                    node: node,
+                    message: UseCaseDiagnostic.notAStruct,
+                    fixIts: [fixIt]
+                )
+                context.diagnose(diagnostic)
+                
+                return []
+            }
+            
             let diagnostic = Diagnostic(
                 node: node,
                 message: UseCaseDiagnostic.notAStruct
             )
             context.diagnose(diagnostic)
+            
             return []
         }
 
