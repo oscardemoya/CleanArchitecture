@@ -39,7 +39,7 @@
 ///     }
 ///
 ///     public class EmailLoginFactory {
-///         static func makeUseCase(authRepository: AuthRepository, profileRepository: ProfileRepository) -> EmailLoginUseCase {
+///         public static func makeUseCase(authRepository: AuthRepository, profileRepository: ProfileRepository) -> EmailLoginUseCase {
 ///             return EmailLoginDefaultUseCase(authRepository: authRepository, profileRepository: profileRepository)
 ///         }
 ///     }

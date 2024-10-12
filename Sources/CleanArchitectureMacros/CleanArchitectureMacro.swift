@@ -119,7 +119,7 @@ struct UseCaseMacro: PeerMacro {
         let factoryClassName = "\(typeName)Factory"
         let factoryDecl = """
         public class \(factoryClassName) {
-            static func makeUseCase(\(factoryMethodParams)) -> \(protocolName) {
+            public static func makeUseCase(\(factoryMethodParams)) -> \(protocolName) {
                 return \(defaultClassName)(\(initArgs))
             }
         }
