@@ -44,22 +44,23 @@ struct UseCaseMacro: PeerMacro {
             
             // Get function name and parameters
             let funcName = funcDecl.name.text
-            let params = funcDecl.signature.parameterClause.parameters.map { param -> String in
-                let paramName = param.firstName.text
-                let paramType = param.type.description
-                return "\(paramName): \(paramType)"
-            }.joined(separator: ", ")
+            let parameters = funcDecl.signature.parameterClause.parameters
+            let funcParams = parameters.map { "\($0.firstName.text): \($0.type)" }.joined(separator: ", ")
             
             // Check if the function is async and/or throws
-            let asyncKeyword = funcDecl.signature.effectSpecifiers?.asyncSpecifier?.text ?? ""
-            let throwsKeyword = funcDecl.signature.effectSpecifiers?.throwsClause?.throwsSpecifier.text ?? ""
-            let returnType = funcDecl.signature.returnClause?.type.description ?? "Void"
+            let asyncSpecifier = funcDecl.signature.effectSpecifiers?.asyncSpecifier?.text ?? ""
+            let asyncKeyword = asyncSpecifier.isEmpty ? "" : " async"
+            let throwsSpecifier = funcDecl.signature.effectSpecifiers?.throwsClause?.throwsSpecifier.text ?? ""
+            let throwsKeyword = throwsSpecifier.isEmpty ? "" : " throws"
+            let returnClause = funcDecl.signature.returnClause
+            let returnType = returnClause?.type.description.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let returnExpression = returnType.isEmpty ? "" : " -> \(returnType)"
             
-            return "func \(funcName)(\(params)) \(asyncKeyword) \(throwsKeyword) -> \(returnType)"
+            return "func \(funcName)(\(funcParams))\(asyncKeyword)\(throwsKeyword)\(returnExpression)"
         }
         
-        // Extract the first method from the struct to use in protocol and class generation
-        guard let firstMethod = structDecl.memberBlock.members.compactMap({ $0.decl.as(FunctionDeclSyntax.self) }).first else {
+        // Ensure the macro have at least one function to execute
+        guard !structDecl.memberBlock.members.compactMap({ $0.decl.as(FunctionDeclSyntax.self) }).isEmpty else {
             let diagnostic = Diagnostic(
                 node: node,
                 message: UseCaseDiagnostic.noExecuteMethod
@@ -76,51 +77,64 @@ struct UseCaseMacro: PeerMacro {
         }
         """
         
-        // Prepare execute method signature
-        let methodName = firstMethod.name.text
-        let methodSignature = firstMethod.signature.description
+        // Prepare default class properties strings
+        let defaultClassProperties = properties.map { "let \($0.name): \($0.type)" }.joined(separator: "\n    ")
+        let defaultClassInitProperties = properties.map { "self.\($0.name) = \($0.name)" }.joined(separator: "\n        ")
+        let defaultClassParams = properties.map { "\($0.name): \($0.type)" }.joined(separator: ", ")
+        let initArgs = properties.map { "\($0.name): \($0.name)" }.joined(separator: ", ")
         
-        // Prepare execute method argument string
-        let methodArgs = firstMethod.signature.parameterClause.parameters
-            .map { "\($0.firstName.text): \($0.firstName.text)" }
-            .joined(separator: ", ")
+        // Prepare function bodies from the struct
+        let functionBodies = structDecl.memberBlock.members.compactMap { member -> String? in
+            guard let funcDecl = member.decl.as(FunctionDeclSyntax.self) else {
+                return nil
+            }
+            
+            // Get function name and parameters
+            let funcName = funcDecl.name.text
+            let parameters = funcDecl.signature.parameterClause.parameters
+            let funcParams = parameters.map { "\($0.firstName.text): \($0.type)" }.joined(separator: ", ")
+            let funcArgs = parameters.map { "\($0.firstName.text): \($0.firstName.text)" }.joined(separator: ", ")
+            
+            // Check if the function is async and/or throws
+            let asyncSpecifier = funcDecl.signature.effectSpecifiers?.asyncSpecifier?.text ?? ""
+            let asyncKeyword = asyncSpecifier.isEmpty ? "" : " async"
+            let awaitKeyword = asyncSpecifier.isEmpty ? "" : "await "
+            let throwsSpecifier = funcDecl.signature.effectSpecifiers?.throwsClause?.throwsSpecifier.text ?? ""
+            let throwsKeyword = throwsSpecifier.isEmpty ? "" : " throws"
+            let tryKeyword = throwsSpecifier.isEmpty ? "" : "try "
+            let returnClause = funcDecl.signature.returnClause
+            let returnType = returnClause?.type.description.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let returnExpression = returnType.isEmpty ? "" : " -> \(returnType)"
+            
+            return """
+                func \(funcName)(\(funcParams))\(asyncKeyword)\(throwsKeyword)\(returnExpression) {
+                    \(tryKeyword)\(awaitKeyword)useCase.\(funcName)(\(funcArgs))
+                }
+            """
+        }
         
         // Generate default class implementation
         let defaultClassName = "\(typeName)DefaultUseCase"
         let defaultClassDecl = """
         class \(defaultClassName): \(protocolName) {
-            let authRepository: AuthRepository
-            let profileRepository: ProfileRepository
+            \(defaultClassProperties)
             let useCase: \(typeName)
         
-            init(authRepository: AuthRepository, profileRepository: ProfileRepository) {
-                self.authRepository = authRepository
-                self.profileRepository = profileRepository
-                self.useCase = \(typeName)(authRepository: authRepository, profileRepository: profileRepository)
+            init(\(defaultClassParams)) {
+                \(defaultClassInitProperties)
+                self.useCase = \(typeName)(\(initArgs))
             }
         
-            func \(methodName)\(methodSignature) {
-                return try await useCase.\(methodName)(\(methodArgs))
-            }
+        \(functionBodies.joined(separator: "\n\n"))
         }
         """
         
-        // Prepare factory method parameter string
-        let factoryMethodParams = properties
-            .map { "\($0.name): \($0.type)" }
-            .joined(separator: ", ")
-
-        // Prepare initialization argument string
-        let initArgs = properties
-            .map { "\($0.name): \($0.name)" }
-            .joined(separator: ", ")
-
         // Generate the factory class and method
         let factoryClassName = "\(typeName)Factory"
         let factoryDecl = """
         public class \(factoryClassName) {
-            public static func makeUseCase(\(factoryMethodParams)) -> \(protocolName) {
-                return \(defaultClassName)(\(initArgs))
+            public static func makeUseCase(\(defaultClassParams)) -> \(protocolName) {
+                \(defaultClassName)(\(initArgs))
             }
         }
         """
@@ -129,7 +143,7 @@ struct UseCaseMacro: PeerMacro {
         let protocolSyntax = DeclSyntax(stringLiteral: protocolDecl)
         let defaultClassSyntax = DeclSyntax(stringLiteral: defaultClassDecl)
         let factoryClassSyntax = DeclSyntax(stringLiteral: factoryDecl)
-                
+        
         return [protocolSyntax, defaultClassSyntax, factoryClassSyntax]
     }
 }
