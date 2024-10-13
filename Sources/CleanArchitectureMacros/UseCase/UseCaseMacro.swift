@@ -1,3 +1,10 @@
+//
+//  UseCaseMacro.swift
+//  CleanArchitecture
+//
+//  Created by Oscar De Moya on 10/12/24.
+//
+
 import SwiftCompilerPlugin
 import SwiftSyntax
 import SwiftSyntaxBuilder
@@ -157,9 +164,9 @@ struct UseCaseMacro: PeerMacro {
         """
         
         // Generate the factory class and method
-        let factoryClassName = "\(typeName)Factory"
+        let factoryName = "\(typeName)Factory"
         let factoryDecl = """
-        public class \(factoryClassName) {
+        public struct \(factoryName) {
             public static func makeUseCase(\(defaultClassParams)) -> \(protocolName) {
                 \(defaultClassName)(\(initArgs))
             }
@@ -169,8 +176,8 @@ struct UseCaseMacro: PeerMacro {
         // Parse the generated class, protocol, and method into SwiftSyntax
         let protocolSyntax = DeclSyntax(stringLiteral: protocolDecl)
         let defaultClassSyntax = DeclSyntax(stringLiteral: defaultClassDecl)
-        let factoryClassSyntax = DeclSyntax(stringLiteral: factoryDecl)
+        let factoryStructSyntax = DeclSyntax(stringLiteral: factoryDecl)
         
-        return [protocolSyntax, defaultClassSyntax, factoryClassSyntax]
+        return [protocolSyntax, defaultClassSyntax, factoryStructSyntax]
     }
 }

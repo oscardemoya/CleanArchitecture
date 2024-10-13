@@ -1,7 +1,7 @@
 // The Swift Programming Language
 // https://docs.swift.org/swift-book
 
-/// A macro that produces factory of use cases for the clean architecture boilerplate
+/// A macro that produces a factory class of use cases for the clean architecture boilerplate
 /// when applied to a use case concrete implemetation. For example:
 ///
 ///     @UseCase
@@ -47,3 +47,21 @@
 @attached(peer, names: suffixed(UseCase), suffixed(DefaultUseCase), suffixed(Factory))
 public macro UseCase() = #externalMacro(module: "CleanArchitectureMacros", type: "UseCaseMacro")
 
+/// A macro that produces factory method of repositories for the clean architecture boilerplate.
+/// If no concrete repository implemetation is specified it will return an instance of a repository
+/// named with the 'Default' suffix. For example:
+///
+///     extension RepositoryFactory {
+///         #RepositoryFactory<AuthRepository>()
+///     }
+///
+/// produces:
+///
+///     extension RepositoryFactory {
+///         public static func makeAuthRepository() -> AuthRepository {
+///             DefaultAuthRepository()
+///         }
+///     }
+///
+@freestanding(declaration, names: arbitrary)
+public macro RepositoryFactory<T>(_ type: Any.Type? = nil) = #externalMacro(module: "CleanArchitectureMacros", type: "RepositoryFactoryMacro")

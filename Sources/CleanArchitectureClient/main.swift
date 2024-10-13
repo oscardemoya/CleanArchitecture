@@ -42,3 +42,15 @@ struct EmailLogin {
         return user
     }
 }
+
+final class DefaultAuthRepository: AuthRepository {
+    func logIn(email: String, password: String) async throws -> User {
+        User(id: email)
+    }
+}
+
+struct RepositoryFactory {}
+
+extension RepositoryFactory {
+    #RepositoryFactory<AuthRepository>()
+}
