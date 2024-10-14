@@ -8,9 +8,8 @@ import XCTest
 #if canImport(CleanArchitectureMacros)
 @testable import CleanArchitectureMacros
 
-let testMacros: [String: Macro.Type] = [
-    "UseCase": UseCaseMacro.self,
-    "RepositoryFactory": RepositoryFactoryMacro.self,
+let useCaseTestMacros: [String: Macro.Type] = [
+    "UseCase": UseCaseMacro.self
 ]
 #endif
 
@@ -69,35 +68,10 @@ final class UseCaseMacroTests: XCTestCase {
                 }
             }
             """,
-            macros: testMacros
+            macros: useCaseTestMacros
         )
         #else
         throw XCTSkip("macros are only supported when running tests for the host platform")
         #endif
     }
 }
-
-final class RepositoryFactoryMacroTests: XCTestCase {
-    func testMacro() throws {
-        #if canImport(CleanArchitectureMacros)
-        assertMacroExpansion(
-            """
-            extension RepositoryFactory {
-                #RepositoryFactory<AuthRepository>()
-            }
-            """,
-            expandedSource: """
-            extension RepositoryFactory {
-                public static func makeAuthRepository() -> AuthRepository {
-                    DefaultAuthRepository()
-                }
-            }
-            """,
-            macros: testMacros
-        )
-        #else
-        throw XCTSkip("macros are only supported when running tests for the host platform")
-        #endif
-    }
-}
-

@@ -52,7 +52,7 @@ public macro UseCase() = #externalMacro(module: "CleanArchitectureMacros", type:
 /// named with the 'Default' suffix. For example:
 ///
 ///     extension RepositoryFactory {
-///         #RepositoryFactory<AuthRepository>()
+///         #MakeRepository<AuthRepository>()
 ///     }
 ///
 /// produces:
@@ -64,4 +64,10 @@ public macro UseCase() = #externalMacro(module: "CleanArchitectureMacros", type:
 ///     }
 ///
 @freestanding(declaration, names: arbitrary)
-public macro RepositoryFactory<T>(_ type: Any.Type? = nil) = #externalMacro(module: "CleanArchitectureMacros", type: "RepositoryFactoryMacro")
+public macro MakeRepository<T>(_ type: Any.Type? = nil) = #externalMacro(module: "CleanArchitectureMacros", type: "MakeRepositoryMacro")
+
+@freestanding(declaration, names: arbitrary)
+public macro MakeUseCase<T>(_ types: Any.Type) = #externalMacro(module: "CleanArchitectureMacros", type: "MakeUseCaseMacro")
+
+@attached(member, names: named(shared), named(init))
+public macro Service() = #externalMacro(module: "CleanArchitectureMacros", type: "ServiceMacro")

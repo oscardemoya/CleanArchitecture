@@ -1,5 +1,5 @@
 //
-//  RepositoryFactoryDiagnostic.swift
+//  MakeUseCaseDiagnostic.swift
 //  CleanArchitecture
 //
 //  Created by Oscar De Moya on 10/12/24.
@@ -7,9 +7,8 @@
 
 import SwiftDiagnostics
 
-enum RepositoryFactoryDiagnostic: String, DiagnosticMessage {
+enum MakeUseCaseDiagnostic: String, DiagnosticMessage {
     case noRepositoryProtocol
-    case noConcreteRepository
     
     var severity: DiagnosticSeverity { .error }
 
@@ -17,8 +16,6 @@ enum RepositoryFactoryDiagnostic: String, DiagnosticMessage {
         switch self {
         case .noRepositoryProtocol:
             return "Expected a repository protocol type in the macro."
-        case .noConcreteRepository:
-            return "Expected a concrete repository implementation."
         }
     }
     

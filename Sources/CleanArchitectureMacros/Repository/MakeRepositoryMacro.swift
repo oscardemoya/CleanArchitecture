@@ -1,5 +1,5 @@
 //
-//  RepositoryFactoryMacro.swift
+//  MakeRepositoryMacro.swift
 //  CleanArchitecture
 //
 //  Created by Oscar De Moya on 10/12/24.
@@ -11,7 +11,7 @@ import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 import SwiftDiagnostics
 
-struct RepositoryFactoryMacro: DeclarationMacro {
+struct MakeRepositoryMacro: DeclarationMacro {
     static func expansion(
         of node: some FreestandingMacroExpansionSyntax,
         in context: some MacroExpansionContext
@@ -21,7 +21,7 @@ struct RepositoryFactoryMacro: DeclarationMacro {
         guard let repositoryType = node.genericArgumentClause?.arguments.first else {
             let diagnostic = Diagnostic(
                 node: node,
-                message: RepositoryFactoryDiagnostic.noRepositoryProtocol
+                message: MakeRepositoryDiagnostic.noRepositoryProtocol
             )
             context.diagnose(diagnostic)
             return []
