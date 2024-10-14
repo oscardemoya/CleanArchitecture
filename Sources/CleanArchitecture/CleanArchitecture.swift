@@ -51,13 +51,13 @@ public macro UseCase() = #externalMacro(module: "CleanArchitectureMacros", type:
 /// If no concrete repository implemetation is specified it will return an instance of a repository
 /// named with the 'Default' suffix. For example:
 ///
-///     extension RepositoryFactory {
+///     struct RepositoryFactory {
 ///         #MakeRepository<AuthRepository>()
 ///     }
 ///
 /// produces:
 ///
-///     extension RepositoryFactory {
+///     struct RepositoryFactory {
 ///         public static func makeAuthRepository() -> AuthRepository {
 ///             DefaultAuthRepository()
 ///         }
@@ -66,8 +66,47 @@ public macro UseCase() = #externalMacro(module: "CleanArchitectureMacros", type:
 @freestanding(declaration, names: arbitrary)
 public macro MakeRepository<T>(_ type: Any.Type? = nil) = #externalMacro(module: "CleanArchitectureMacros", type: "MakeRepositoryMacro")
 
+/// A macro that produces factory method of use cases for the clean architecture boilerplate.
+/// A list of repository protocols joined by '&' should be passed in the generic clause
+/// and the name of the protocol of the use case must be pass as parameter. For example:
+///
+///     struct UseCaseFactory {
+///         #MakeUseCase<AuthRepository & ProfileRepository>(FetchCurrentUserUseCase)
+///     }
+///
+/// produces:
+///
+///     struct UseCaseFactory {
+///         public static func makeFetchCurrentUserUseCase() -> FetchCurrentUserUseCase {
+///             let authRepository = RepositoryFactory.makeAuthRepository()
+///             let profileRepository = RepositoryFactory.makeProfileRepository()
+///             return FetchCurrentUserFactory.makeUseCase(authRepository: authRepository, profileRepository: profileRepository)
+///         }
+///     }
+///
 @freestanding(declaration, names: arbitrary)
 public macro MakeUseCase<T>(_ types: Any.Type) = #externalMacro(module: "CleanArchitectureMacros", type: "MakeUseCaseMacro")
 
+/// A macro that produces an init for the use cases of a service class using the factory use case container.
+/// Additionally, it creates a shared instance for this class. For example:
+///
+///     @AppService
+///     final class ProfileService: @unchecked Sendable, ObservableObject {
+///         private var fetchCurrentUserUseCase: FetchCurrentUserUseCase
+///     }
+///
+/// produces:
+///
+///     @AppService
+///     final class ProfileService: @unchecked Sendable, ObservableObject {
+///         private var fetchCurrentUserUseCase: FetchCurrentUserUseCase
+///
+///         static let shared = ProfileService()
+///
+///         private init() {
+///             self.fetchCurrentUserUseCase = UseCaseFactory.makeFetchCurrentUserUseCase()
+///         }
+///     }
+///
 @attached(member, names: named(shared), named(init))
-public macro Service() = #externalMacro(module: "CleanArchitectureMacros", type: "ServiceMacro")
+public macro AppService() = #externalMacro(module: "CleanArchitectureMacros", type: "AppServiceMacro")

@@ -16,6 +16,6 @@ struct CleanArchitecturePlugin: CompilerPlugin {
         MakeRepositoryMacro.self,
         UseCaseMacro.self,
         MakeUseCaseMacro.self,
-        ServiceMacro.self
+        AppServiceMacro.self
     ]
 }

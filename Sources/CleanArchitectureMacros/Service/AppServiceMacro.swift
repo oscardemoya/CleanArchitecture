@@ -1,5 +1,5 @@
 //
-//  RepositoryFactoryMacro.swift
+//  AppServiceMacro.swift
 //  CleanArchitecture
 //
 //  Created by Oscar De Moya on 10/12/24.
@@ -11,7 +11,7 @@ import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 import SwiftDiagnostics
 
-struct ServiceMacro: MemberMacro {
+struct AppServiceMacro: MemberMacro {
     static func expansion(
         of node: AttributeSyntax,
         providingMembersOf declaration: some DeclGroupSyntax,
@@ -26,7 +26,7 @@ struct ServiceMacro: MemberMacro {
                 
                 // Add a FixIt to suggest replacing `class` with `struct`
                 let fixIt = FixIt(
-                    message: ServiceFixItMessage.replaceStructWithClass,
+                    message: AppServiceFixItMessage.replaceStructWithClass,
                     changes: [
                         FixIt.Change.replace(
                             oldNode: Syntax(structDecl.structKeyword),
@@ -38,7 +38,7 @@ struct ServiceMacro: MemberMacro {
                 // Attach the diagnostic with the FixIt to the context
                 let diagnostic = Diagnostic(
                     node: node,
-                    message: ServiceDiagnostic.notAClass,
+                    message: AppServiceDiagnostic.notAClass,
                     fixIts: [fixIt]
                 )
                 context.diagnose(diagnostic)

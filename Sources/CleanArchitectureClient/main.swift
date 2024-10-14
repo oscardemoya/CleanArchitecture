@@ -28,9 +28,9 @@ struct UseCaseFactory {
     #MakeUseCase<AuthRepository & ProfileRepository>(FetchCurrentUserUseCase)
 }
 
-// MARK: @Service
+// MARK: @AppService
 
-@Service
+@AppService
 final class ProfileService: @unchecked Sendable, ObservableObject {
     private var fetchCurrentUserUseCase: FetchCurrentUserUseCase
 }

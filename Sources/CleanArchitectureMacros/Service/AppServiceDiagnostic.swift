@@ -1,5 +1,5 @@
 //
-//  ServiceDiagnostic.swift
+//  AppServiceDiagnostic.swift
 //  CleanArchitecture
 //
 //  Created by Oscar De Moya on 10/13/24.
@@ -7,9 +7,8 @@
 
 import SwiftDiagnostics
 
-enum ServiceDiagnostic: String, DiagnosticMessage {
+enum AppServiceDiagnostic: String, DiagnosticMessage {
     case notAClass
-    case noExecuteMethod
     
     var severity: DiagnosticSeverity { .error }
 
@@ -17,8 +16,6 @@ enum ServiceDiagnostic: String, DiagnosticMessage {
         switch self {
         case .notAClass:
             return "'@UseCase' can only be applied to classes."
-        case .noExecuteMethod:
-            return "'@UseCase' must contain at least one function."
         }
     }
     

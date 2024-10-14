@@ -1,5 +1,5 @@
 //
-//  ServiceFixItMessage.swift
+//  AppServiceFixItMessage.swift
 //  CleanArchitecture
 //
 //  Created by Oscar De Moya on 10/13/24.
@@ -7,7 +7,7 @@
 
 import SwiftDiagnostics
 
-enum ServiceFixItMessage: String, FixItMessage {
+enum AppServiceFixItMessage: String, FixItMessage {
     case replaceStructWithClass
     
     var message: String {
@@ -18,6 +18,6 @@ enum ServiceFixItMessage: String, FixItMessage {
     }
     
     var fixItID: MessageID {
-        return MessageID(domain: "ServiceMacro", id: rawValue)
+        return MessageID(domain: "AppServiceMacro", id: rawValue)
     }
 }

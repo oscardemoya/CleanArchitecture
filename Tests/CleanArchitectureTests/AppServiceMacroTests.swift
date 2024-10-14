@@ -10,16 +10,16 @@ import XCTest
 @testable import CleanArchitectureMacros
 
 let serviceTestMacros: [String: Macro.Type] = [
-    "Service": ServiceMacro.self
+    "AppService": AppServiceMacro.self
 ]
 #endif
 
-final class ServiceMacroTests: XCTestCase {
+final class AppServiceMacroTests: XCTestCase {
     func testMacro() throws {
         #if canImport(CleanArchitectureMacros)
         assertMacroExpansion(
             """
-            @Service
+            @AppService
             final class ProfileService: @unchecked Sendable, ObservableObject {
                 private var fetchCurrentUserUseCase: FetchCurrentUserUseCase
             }
