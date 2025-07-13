@@ -29,11 +29,15 @@ struct MakeRepositoryMacro: DeclarationMacro {
         
         // Extract the concrete repository implementation (e.g., DefaultAuthRepository)
         let returnType = node.arguments.first?.expression ?? "Default\(repositoryType)"
+        let repositoryEntity = repositoryType.description.replacingOccurrences(of: "Repository", with: "")
+        let datasourceType = "\(repositoryEntity)DataSource"
+        let datasourceArg = datasourceType.asVariableName
         
         // Generate the factory struct code
         let factoryDecl = """
-        public static func make\(repositoryType)() -> \(repositoryType) {
-            \(returnType)()
+        public func make\(repositoryType)() -> \(repositoryType) {
+            let \(datasourceArg) = dataSourceFactory.make\(datasourceType)()
+            return \(returnType)(\(datasourceArg): \(datasourceArg))
         }
         """
         

@@ -9,28 +9,33 @@ import XCTest
 #if canImport(CleanArchitectureMacros)
 @testable import CleanArchitectureMacros
 
-let makeRepositoryTestMacros: [String: Macro.Type] = [
-    "MakeRepository": MakeRepositoryMacro.self
+let appServiceTestMacros: [String: Macro.Type] = [
+    "AppService": AppServiceMacro.self
 ]
 #endif
 
-final class MakeRepositoryMacroTests: XCTestCase {
-    func testMacro() throws {
+final class AppServiceMacroTests: XCTestCase {
+    func testAppService() throws {
         #if canImport(CleanArchitectureMacros)
         assertMacroExpansion(
             """
-            struct RepositoryFactory {
-                #MakeRepository<AuthRepository>()
+            @Observable
+            @AppService<UseCaseFactory>
+            final class ProfileService {
+                private var fetchCurrentUserUseCase: FetchCurrentUserUseCase
             }
             """,
             expandedSource: """
-            struct RepositoryFactory {
-                public static func makeAuthRepository() -> AuthRepository {
-                    DefaultAuthRepository()
+            @Observable
+            final class ProfileService {
+                private var fetchCurrentUserUseCase: FetchCurrentUserUseCase
+
+                init(useCaseFactory: UseCaseFactory) {
+                    self.fetchCurrentUserUseCase = useCaseFactory.makeFetchCurrentUserUseCase()
                 }
             }
             """,
-            macros: makeRepositoryTestMacros
+            macros: appServiceTestMacros
         )
         #else
         throw XCTSkip("macros are only supported when running tests for the host platform")

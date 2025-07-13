@@ -1,65 +1,75 @@
 // The Swift Programming Language
 // https://docs.swift.org/swift-book
 
-/// A macro that produces a factory class of use cases for the clean architecture boilerplate
-/// when applied to a use case concrete implemetation. For example:
+/// A macro that produces an init of a RepositoryFactory struct
+/// with a property of given datasource factory type. For example:
 ///
-///     @UseCase
-///     struct EmailLogin {
-///         let authRepository: AuthRepository
-///         let profileRepository: ProfileRepository
-///
-///         func execute(email: String, password: String) async throws -> User {
-///             var user = try await authRepository.logIn(email: email, password: password)
-///             user.profile = try await profileRepository.profile(for: user)
-///             return user
-///         }
+///     @Injectable<RemoteDataSourceConfig>
+///     public struct DataSourceFactory {
 ///     }
 ///
 /// produces:
 ///
-///     public protocol EmailLoginUseCase {
-///         func execute(email: String, password: String) async throws -> User
-///     }
+///     public struct DataSourceFactory {
+///         private let remoteDataSourceConfig: RemoteDataSourceConfig
 ///
-///     class EmailLoginDefaultUseCase: EmailLoginUseCase {
-///         let authRepository: AuthRepository
-///         let profileRepository: ProfileRepository
-///         let useCase: EmailLogin
-///
-///         init(authRepository: AuthRepository, profileRepository: ProfileRepository) {
-///             self.authRepository = authRepository
-///             self.profileRepository = profileRepository
-///             self.useCase = EmailLogin(authRepository: authRepository, profileRepository: ProfileRepository)
-///         }
-///
-///         func execute(email: String, password: String) async throws -> User {
-///             useCase.execute(email: email, password: password)
+///         public init(remoteDataSourceConfig: RemoteDataSourceConfig) {
+///             self.remoteDataSourceConfig = remoteDataSourceConfig
 ///         }
 ///     }
 ///
-///     public class EmailLoginFactory {
-///         public static func makeUseCase(authRepository: AuthRepository, profileRepository: ProfileRepository) -> EmailLoginUseCase {
-///             EmailLoginDefaultUseCase(authRepository: authRepository, profileRepository: profileRepository)
+@attached(member, names: arbitrary)
+public macro Injectable<T>() = #externalMacro(module: "CleanArchitectureMacros", type: "InjectableMacro")
+
+/// A macro that produces factory method of datasources for the clean architecture boilerplate.
+/// If no concrete datasource implementation is specified it will return an instance of a datasource
+/// named with the 'DefaultRemote' suffix. For example:
+///
+///     public struct DataSourceFactory {
+///         let remoteDataSourceConfig: RemoteDataSourceConfig
+///
+///         #MakeDataSource<AuthDataSource, RemoteDataSourceConfig>()
+///     }
+///
+/// produces:
+///
+///     public struct DataSourceFactory {
+///         let remoteDataSourceConfig: RemoteDataSourceConfig
+///
+///         func makeAuthDataSource() -> AuthDataSource {
+///             return DefaultAuthDataSource(configuration: remoteDataSourceConfig)
 ///         }
 ///     }
 ///
-@attached(peer, names: suffixed(UseCase), suffixed(DefaultUseCase), suffixed(Factory))
-public macro UseCase() = #externalMacro(module: "CleanArchitectureMacros", type: "UseCaseMacro")
+@freestanding(declaration, names: arbitrary)
+public macro MakeDataSource<T, U>() = #externalMacro(module: "CleanArchitectureMacros", type: "MakeDataSourceMacro")
 
 /// A macro that produces factory method of repositories for the clean architecture boilerplate.
-/// If no concrete repository implemetation is specified it will return an instance of a repository
+/// If no concrete repository implementation is specified it will return an instance of a repository
 /// named with the 'Default' suffix. For example:
 ///
 ///     struct RepositoryFactory {
+///         private let dataSourceFactory: DataSourceFactory
+///
+///         public init(dataSourceFactory: DataSourceFactory) {
+///             self.dataSourceFactory = dataSourceFactory
+///         }
+///
 ///         #MakeRepository<AuthRepository>()
 ///     }
 ///
 /// produces:
 ///
 ///     struct RepositoryFactory {
-///         public static func makeAuthRepository() -> AuthRepository {
-///             DefaultAuthRepository()
+///         private let dataSourceFactory: DataSourceFactory
+///
+///         public init(dataSourceFactory: DataSourceFactory) {
+///             self.dataSourceFactory = dataSourceFactory
+///         }
+///
+///         public func makeAuthRepository() -> AuthRepository {
+///             let dataSource = dataSourceFactory.makeAuthDataSource()
+///             DefaultAuthRepository(dataSource: dataSource)
 ///         }
 ///     }
 ///
@@ -71,21 +81,21 @@ public macro MakeRepository<T>(_ type: Any.Type? = nil) = #externalMacro(module:
 /// and the name of the protocol of the use case must be pass as parameter. For example:
 ///
 ///     struct UseCaseFactory {
-///         #MakeUseCase<AuthRepository & ProfileRepository>(FetchCurrentUserUseCase)
+///         #MakeUseCase<AuthRepository & ProfileRepository, LoginUseCase>()
 ///     }
 ///
 /// produces:
 ///
 ///     struct UseCaseFactory {
-///         public static func makeFetchCurrentUserUseCase() -> FetchCurrentUserUseCase {
+///         public static func makeLoginUseCase() -> LoginUseCase {
 ///             let authRepository = RepositoryFactory.makeAuthRepository()
 ///             let profileRepository = RepositoryFactory.makeProfileRepository()
-///             return FetchCurrentUserFactory.makeUseCase(authRepository: authRepository, profileRepository: profileRepository)
+///             return LoginUseCase(authRepository: authRepository, profileRepository: profileRepository)
 ///         }
 ///     }
 ///
 @freestanding(declaration, names: arbitrary)
-public macro MakeUseCase<T>(_ types: Any.Type) = #externalMacro(module: "CleanArchitectureMacros", type: "MakeUseCaseMacro")
+public macro MakeUseCase<T, U>() = #externalMacro(module: "CleanArchitectureMacros", type: "MakeUseCaseMacro")
 
 /// A macro that produces an init for the use cases of a service class using the factory use case container.
 /// Additionally, it creates a shared instance for this class. For example:
@@ -97,7 +107,6 @@ public macro MakeUseCase<T>(_ types: Any.Type) = #externalMacro(module: "CleanAr
 ///
 /// produces:
 ///
-///     @AppService
 ///     final class ProfileService: @unchecked Sendable, ObservableObject {
 ///         private var fetchCurrentUserUseCase: FetchCurrentUserUseCase
 ///
@@ -109,4 +118,29 @@ public macro MakeUseCase<T>(_ types: Any.Type) = #externalMacro(module: "CleanAr
 ///     }
 ///
 @attached(member, names: named(shared), named(init))
-public macro AppService() = #externalMacro(module: "CleanArchitectureMacros", type: "AppServiceMacro")
+public macro AppService<T>() = #externalMacro(module: "CleanArchitectureMacros", type: "AppServiceMacro")
+
+/// A macro that produces an init for the app services of a service container class.
+/// Additionally, it adds and initializes an property of UseCaseFactory. For example:
+///
+///     @ServiceContainer
+///     final class ServiceContainer: ServiceProvider {
+///         let authService: AuthService
+///         let profileService: ProfileService
+///     }
+///
+/// produces:
+///
+///     final class ServiceContainer: ServiceProvider {
+///         let authService: AuthService
+///         let profileService: ProfileService
+///         let useCaseFactory = UseCaseFactory()
+///
+///         init(environment: AppEnvironment) {
+///             self.authService = DefaultAuthService(useCaseFactory: useCaseFactory)
+///             self.profileService = DefaultProfileService(useCaseFactory: useCaseFactory)
+///         }
+///     }
+///
+@attached(member, names: named(useCaseFactory), named(init))
+public macro ServiceContainer() = #externalMacro(module: "CleanArchitectureMacros", type: "ServiceContainerMacro")

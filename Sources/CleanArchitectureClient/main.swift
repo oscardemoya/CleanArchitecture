@@ -1,62 +1,156 @@
 import CleanArchitecture
 import Foundation
 
-// MARK: #MakeRepository
+// MARK: General
 
+@Injectable<AuthRepository>
+struct LogoutUseCase {
+    func execute() async throws {
+    }
+}
+
+// MARK: DataSource
+// @DataSourceFactory
+// #MakeDataSource
+
+@Injectable<RemoteDataSourceConfig>
+struct DataSourceFactory {
+    #MakeDataSource<AuthDataSource, RemoteDataSourceConfig>()
+    #MakeDataSource<ProfileDataSource, RemoteDataSourceConfig>()
+}
+
+// MARK: Repository
+// @RepositoryFactory
+// #MakeRepository
+
+@Injectable<DataSourceFactory>
 struct RepositoryFactory {
     #MakeRepository<AuthRepository>()
     #MakeRepository<ProfileRepository>()
 }
 
-// MARK: @UseCase
+// MARK: UseCase
 
-@UseCase
-struct EmailLogin {
-    let authRepository: AuthRepository
-    let profileRepository: ProfileRepository
-    
-    func execute(email: String, password: String) async throws -> User {
-        var user = try await authRepository.logIn(email: email, password: password)
-        user.profile = try await profileRepository.profile(for: user)
-        return user
-    }
-}
+// @UseCaseFactory
+// #MakeUseCase
 
-// MARK: #MakeUseCase
-
+@Injectable<RepositoryFactory>
 struct UseCaseFactory {
-    #MakeUseCase<AuthRepository & ProfileRepository>(FetchCurrentUserUseCase)
+    #MakeUseCase<AuthRepository, LoginUseCase>()
+    #MakeUseCase<AuthRepository & ProfileRepository, FetchCurrentUserUseCase>()
 }
 
 // MARK: @AppService
 
-@AppService
-final class ProfileService: @unchecked Sendable, ObservableObject {
+@Observable
+@AppService<UseCaseFactory>
+final class DefaultAuthService: AuthService {
+    private var loginUseCase: LoginUseCase
+    
+    func login(email: String, password: String) async throws -> User {
+        User(id: email)
+    }
+}
+
+@Observable
+@AppService<UseCaseFactory>
+final class DefaultProfileService: ProfileService {
     private var fetchCurrentUserUseCase: FetchCurrentUserUseCase
+    
+    func profile(for user: User) async throws -> Profile {
+        Profile(id: user.id)
+    }
+}
+
+// MARK: @ServiceContainer
+
+@Observable
+@ServiceContainer
+final class ServiceContainer: ServiceProvider {
+    let authService: AuthService
+    let profileService: ProfileService
 }
 
 // MARK: - Sample Source Code
 
-public struct FetchCurrentUserFactory {
-    public static func makeUseCase(authRepository: AuthRepository, profileRepository: ProfileRepository) -> FetchCurrentUserUseCase {
-        FetchCurrentUserDefaultUseCase(authRepository: authRepository, profileRepository: profileRepository)
+extension UseCaseFactory {
+    init(environment: AppEnvironment = .current) {
+        let dataSourceFactory = DataSourceFactory(environment: environment)
+        let repositoryFactory = RepositoryFactory(dataSourceFactory: dataSourceFactory)
+        self.init(repositoryFactory: repositoryFactory)
     }
 }
 
-class FetchCurrentUserDefaultUseCase: FetchCurrentUserUseCase {
+extension DataSourceFactory {
+    init(environment: AppEnvironment = .current) {
+        let apiClient = APIClient()
+        self.init(
+            remoteDataSourceConfig: DefaultRemoteDataSourceConfig(apiClient: apiClient)/*,*/
+//            secureDataSourceConfig: DefaultSecureDataSourceConfig()
+        )
+    }
+}
+
+enum AppEnvironment {
+    case staging
+    case testing
+    case production
+    
+    static var current: Self = .staging
+}
+
+protocol ServiceProvider {
+    var authService: AuthService { get }
+    var profileService: ProfileService { get }
+}
+
+public protocol AuthService {
+    func login(email: String, password: String) async throws -> User
+}
+
+public protocol ProfileService {
+    func profile(for user: User) async throws -> Profile
+}
+
+class LoginUseCase {
+    let authRepository: AuthRepository
+
+    init(authRepository: AuthRepository) {
+        self.authRepository = authRepository
+    }
+
+    func execute() async throws -> User {
+        try await authRepository.login(email: "", password: "")
+    }
+}
+
+struct Login {
+    let authRepository: AuthRepository
+    
+    func execute() async throws -> User {
+        return User(id: "id")
+    }
+}
+
+class FetchCurrentUserUseCase {
     let authRepository: AuthRepository
     let profileRepository: ProfileRepository
-    let useCase: FetchCurrentUser
 
     init(authRepository: AuthRepository, profileRepository: ProfileRepository) {
         self.authRepository = authRepository
         self.profileRepository = profileRepository
-        self.useCase = FetchCurrentUser(authRepository: authRepository, profileRepository: profileRepository)
     }
 
-    func execute() async throws -> User {
-        try await useCase.execute()
+    func execute() async throws -> Profile {
+        guard authRepository.isLoggedIn else {
+            throw AuthError.notLoggedIn
+        }
+        return try await profileRepository.profile(for: User(id: "id"))
     }
+}
+
+enum AuthError: Error {
+    case notLoggedIn
 }
 
 struct FetchCurrentUser {
@@ -68,16 +162,19 @@ struct FetchCurrentUser {
     }
 }
 
-public protocol FetchCurrentUserUseCase {
-    func execute() async throws -> User
-}
-
+@Injectable<AuthDataSource>
 final class DefaultAuthRepository: AuthRepository {
-    func logIn(email: String, password: String) async throws -> User {
+    var isLoggedIn: Bool { true }
+    
+    func login(email: String, password: String) async throws -> User {
         User(id: email)
+    }
+    
+    func logout() async throws {
     }
 }
 
+@Injectable<ProfileDataSource>
 final class DefaultProfileRepository: ProfileRepository {
     func profile(for user: User) async throws -> Profile {
         Profile(id: user.id)
@@ -85,7 +182,9 @@ final class DefaultProfileRepository: ProfileRepository {
 }
 
 public protocol AuthRepository {
-    func logIn(email: String, password: String) async throws -> User
+    var isLoggedIn: Bool { get }
+    func login(email: String, password: String) async throws -> User
+    func logout() async throws
 }
 
 public protocol ProfileRepository {
@@ -94,10 +193,10 @@ public protocol ProfileRepository {
 
 public struct User: Identifiable {
     public var id: String
-    public var email: String?
-    public var profile: Profile?
+    var email: String?
+    var profile: Profile?
     
-    public init(id: String, email: String? = nil) {
+    init(id: String, email: String? = nil) {
         self.id = id
         self.email = email
     }
@@ -105,12 +204,118 @@ public struct User: Identifiable {
 
 public struct Profile: Identifiable {
     public var id: String
-    public var firstName: String?
-    public var lastName: String?
+    var firstName: String?
+    var lastName: String?
     
-    public init(id: String, firstName: String? = nil, lastName: String? = nil) {
+    init(id: String, firstName: String? = nil, lastName: String? = nil) {
         self.id = id
         self.firstName = firstName
         self.lastName = lastName
     }
 }
+
+struct UserData: Identifiable {
+    var id: String
+    var email: String?
+    var profile: Profile?
+    
+    init(id: String, email: String? = nil) {
+        self.id = id
+        self.email = email
+    }
+}
+
+struct ProfileData: Identifiable {
+    var id: String
+    var firstName: String?
+    var lastName: String?
+    
+    init(id: String, firstName: String? = nil, lastName: String? = nil) {
+        self.id = id
+        self.firstName = firstName
+        self.lastName = lastName
+    }
+}
+
+protocol AuthDataSource {
+    func login(credentials: any Codable) async throws -> UserData
+}
+
+final class DefaultAuthDataSource: AuthDataSource, RemoteDataSource {
+    let configuration: RemoteDataSourceConfig
+    
+    required init(configuration: RemoteDataSourceConfig) {
+        self.configuration = configuration
+    }
+    
+    func login(credentials: any Codable) async throws -> UserData {
+        UserData(id: "id")
+    }
+}
+
+protocol ProfileDataSource {
+    func profile(id: String) async throws -> ProfileData
+}
+
+final class DefaultProfileDataSource: ProfileDataSource, RemoteDataSource {
+    let configuration: RemoteDataSourceConfig
+    
+    required init(configuration: RemoteDataSourceConfig) {
+        self.configuration = configuration
+    }
+    
+    func profile(id: String) async throws -> ProfileData {
+        ProfileData(id: "id")
+    }
+}
+
+protocol ConfigurableDataSource {
+    associatedtype Configuration
+    
+    var configuration: Configuration { get }
+    init(configuration: Configuration)
+}
+
+// Remote Data Source
+
+protocol RemoteDataSource: ConfigurableDataSource where Configuration == RemoteDataSourceConfig {
+    var apiClient: APIClient { get }
+}
+
+extension RemoteDataSource {
+    var apiClient: APIClient { configuration.apiClient }
+}
+
+protocol RemoteDataSourceConfig {
+    var apiClient: APIClient { get }
+}
+
+struct DefaultRemoteDataSourceConfig: RemoteDataSourceConfig {
+    let apiClient: APIClient
+}
+
+actor APIClient {}
+
+// Secure Data Source
+
+struct SecureDataSourceConfig {
+    let keychain: KeychainManager
+}
+
+final class KeychainManager {}
+
+// Local Data Source
+
+protocol LocalDataSource: ConfigurableDataSource where Configuration == LocalDataSourceConfig {
+    var fileManager: FileManager { get }
+}
+
+extension LocalDataSource {
+    var fileManager: FileManager { configuration.fileManager }
+}
+
+struct LocalDataSourceConfig {
+    let fileManager: FileManager
+}
+
+actor FileManager {}

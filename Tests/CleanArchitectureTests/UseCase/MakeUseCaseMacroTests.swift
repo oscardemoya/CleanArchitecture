@@ -15,20 +15,20 @@ let makeUseCaseTestMacros: [String: Macro.Type] = [
 #endif
 
 final class MakeUseCaseMacroTests: XCTestCase {
-    func testMacro() throws {
+    func testMakeUseCase() throws {
         #if canImport(CleanArchitectureMacros)
         assertMacroExpansion(
             """
             struct UseCaseFactory {
-                #MakeUseCase<AuthRepository & ProfileRepository>(FetchCurrentUserUseCase)
+                #MakeUseCase<AuthRepository & ProfileRepository, LoginUseCase>()
             }
             """,
             expandedSource: """
             struct UseCaseFactory {
-                public static func makeFetchCurrentUserUseCase() -> FetchCurrentUserUseCase {
-                    let authRepository = RepositoryFactory.makeAuthRepository()
-                    let profileRepository = RepositoryFactory.makeProfileRepository()
-                    return FetchCurrentUserFactory.makeUseCase(authRepository: authRepository, profileRepository: profileRepository)
+                public func makeLoginUseCase() -> LoginUseCase {
+                    let authRepository = repositoryFactory.makeAuthRepository()
+                    let profileRepository = repositoryFactory.makeProfileRepository()
+                    return LoginUseCase(authRepository: authRepository, profileRepository: profileRepository)
                 }
             }
             """,

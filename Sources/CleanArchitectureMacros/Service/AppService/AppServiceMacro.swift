@@ -19,42 +19,23 @@ struct AppServiceMacro: MemberMacro {
     ) throws -> [DeclSyntax] {
         
         // Ensure the macro is applied to a class
-        guard let classDecl = declaration.as(ClassDeclSyntax.self) else {
-            
-            // Check if the macro is applied to a struct
-            if let structDecl = declaration.as(StructDeclSyntax.self) {
-                
-                // Add a FixIt to suggest replacing `class` with `struct`
-                let fixIt = FixIt(
-                    message: AppServiceFixItMessage.replaceStructWithClass,
-                    changes: [
-                        FixIt.Change.replace(
-                            oldNode: Syntax(structDecl.structKeyword),
-                            newNode: Syntax(TokenSyntax.keyword(.class))
-                        )
-                    ]
-                )
-                
-                // Attach the diagnostic with the FixIt to the context
-                let diagnostic = Diagnostic(
-                    node: node,
-                    message: AppServiceDiagnostic.notAClass,
-                    fixIts: [fixIt]
-                )
-                context.diagnose(diagnostic)
-                
-                return []
-            }
-            
-            let diagnostic = Diagnostic(
-                node: node,
-                message: UseCaseDiagnostic.notAStruct
-            )
-            context.diagnose(diagnostic)
-            
+        guard let classDecl = node.classDeclSyntax(providingMembersOf: declaration, in: context) else {
             return []
         }
-
+        
+        // Extract the use case factory type (e.g., UseCaseFactory)
+        let classAttributes = classDecl.attributes.compactMap { $0.as(AttributeSyntax.self) }
+        let classAttributeIDs = classAttributes.compactMap { $0.attributeName.as(IdentifierTypeSyntax.self) }
+        guard let identifier = classAttributeIDs.first(where: { $0.name.text == "AppService" }),
+              let useCaseFactoryType = identifier.genericArgumentClause?.arguments.first?.description else {
+            let diagnostic = Diagnostic(
+                node: node,
+                message: AppServiceDiagnostic.noUseCaseFactoryType
+            )
+            context.diagnose(diagnostic)
+            return []
+        }
+        
         // Extract property declarations from the struct
         let properties = classDecl.memberBlock.members.compactMap { member -> (name: String, type: String)? in
             guard let variableDecl = member.decl.as(VariableDeclSyntax.self) else {
@@ -68,27 +49,22 @@ struct AppServiceMacro: MemberMacro {
             return (name: identifier.identifier.text, type: type.description)
         }
         
-        // Generate the static shared instance
-        let sharedInstance = "static let shared = \(classDecl.name.text)()"
-        
         // Generate factory initialization for use cases
         let useCaseInitAssignments = properties.compactMap { property -> String? in
             guard property.name.localizedCaseInsensitiveContains("UseCase") else { return nil }
-            return "self.\(property.name) = UseCaseFactory.make\(property.type)()"
+            return "self.\(property.name) = useCaseFactory.make\(property.type)()"
         }.joined(separator: "\n")
         
         // Create the private init method with the generated assignments
         let initCode = """
-        private init() {
+        init(useCaseFactory: \(useCaseFactoryType)) {
             \(useCaseInitAssignments)
         }
         """
         
         // Parse the generated class, protocol, and method into SwiftSyntax
-        let sharedInstanceSyntax = DeclSyntax(stringLiteral: sharedInstance)
         let initCodeSyntax = DeclSyntax(stringLiteral: initCode)
         
-        return [sharedInstanceSyntax, initCodeSyntax]
+        return [initCodeSyntax]
     }
 }
-

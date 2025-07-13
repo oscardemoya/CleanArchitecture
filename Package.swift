@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 5.10
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -6,7 +6,7 @@ import CompilerPluginSupport
 
 let package = Package(
     name: "CleanArchitecture",
-    platforms: [.iOS(.v16), .macOS(.v13)],
+    platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(
             name: "CleanArchitecture",
@@ -30,15 +30,11 @@ let package = Package(
         ),
         .target(
             name: "CleanArchitecture",
-            dependencies: [
-                "CleanArchitectureMacros"
-            ]
+            dependencies: ["CleanArchitectureMacros"]
         ),
         .executableTarget(
             name: "CleanArchitectureClient",
-            dependencies: [
-                "CleanArchitecture"
-            ]
+            dependencies: ["CleanArchitecture"]
         ),
         .testTarget(
             name: "CleanArchitectureTests",
