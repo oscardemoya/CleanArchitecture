@@ -15,8 +15,8 @@ struct LogoutUseCase {
 
 @Injectable<RemoteDataSourceConfig>
 struct DataSourceFactory {
-    #MakeDataSource<AuthDataSource, RemoteDataSourceConfig>()
-    #MakeDataSource<ProfileDataSource, RemoteDataSourceConfig>()
+    #MakeDataSource<any AuthDataSource, RemoteDataSourceConfig>()
+    #MakeDataSource<any ProfileDataSource, RemoteDataSourceConfig>()
 }
 
 // MARK: Repository

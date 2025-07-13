@@ -19,7 +19,7 @@ struct MakeDataSourceMacro: DeclarationMacro {
         
         // Extract the datasource protocol and config type (e.g., <AuthDataSource, RemoteDataSourceConfig>)
         guard let genericArguments = node.genericArgumentClause?.arguments, genericArguments.count == 2,
-              let dataSourceType = genericArguments.first?.argument.description,
+              let dataSourceArgument = genericArguments.first?.argument.as(SomeOrAnyTypeSyntax.self),
               let configurationType = genericArguments.last?.argument.description else {
             let diagnostic = Diagnostic(
                 node: node,
@@ -29,10 +29,22 @@ struct MakeDataSourceMacro: DeclarationMacro {
             return []
         }
         
+        let returnProtocolType = dataSourceArgument.description
+        let dataSourceProtocol = dataSourceArgument.constraint.description
+        let dataSourceType = "Default\(dataSourceProtocol)"
+        guard dataSourceArgument.someOrAnySpecifier.tokenKind == TokenKind.keyword(.any) else {
+            let diagnostic = Diagnostic(
+                node: node,
+                message: MakeDataSourceDiagnostic.missingAnyKeyword
+            )
+            context.diagnose(diagnostic)
+            return []
+        }
+        
         // Generate the factory struct code
         let factoryDecl = """
-        func make\(dataSourceType)() -> \(dataSourceType) {
-            Default\(dataSourceType)(configuration: \(configurationType.asVariableName))
+        func make\(dataSourceProtocol)() -> \(returnProtocolType) {
+            \(dataSourceType)(configuration: \(configurationType.asVariableName))
         }
         """
         

@@ -9,13 +9,13 @@ import XCTest
 #if canImport(CleanArchitectureMacros)
 @testable import CleanArchitectureMacros
 
-let initializableTestMacros: [String: Macro.Type] = [
+let injectableTestMacros: [String: Macro.Type] = [
     "Injectable": InjectableMacro.self
 ]
 #endif
 
 final class InjectableMacroTests: XCTestCase {
-    func testInjectable_withSingleProtocol() throws {
+    func testInjectable_withSingleType() throws {
         #if canImport(CleanArchitectureMacros)
         assertMacroExpansion(
             """
@@ -41,14 +41,47 @@ final class InjectableMacroTests: XCTestCase {
                 }
             }
             """,
-            macros: initializableTestMacros
+            macros: injectableTestMacros
         )
         #else
         throw XCTSkip("macros are only supported when running tests for the host platform")
         #endif
     }
     
-    func testInjectable_withMultipleProtocol() throws {
+    func testInjectable_withSingleProtocol() throws {
+        #if canImport(CleanArchitectureMacros)
+        assertMacroExpansion(
+            """
+            @Injectable<any AuthRepository>
+            struct EmailLoginUseCase {                
+                func execute(credentials: LoginCredentials) async throws -> AuthToken {
+                    try await authRepository.login(credentials: credentials)
+                }
+            }
+            """,
+            expandedSource: """
+            struct EmailLoginUseCase {                
+                func execute(credentials: LoginCredentials) async throws -> AuthToken {
+                    try await authRepository.login(credentials: credentials)
+                }
+
+                private let authRepository: any AuthRepository
+
+                public init(
+                    authRepository: any AuthRepository
+                ) {
+                    self.authRepository = authRepository
+                }
+            }
+            """,
+            macros: injectableTestMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+    
+    func testInjectable_withMultipleTypes() throws {
         #if canImport(CleanArchitectureMacros)
         assertMacroExpansion(
             """
@@ -82,7 +115,7 @@ final class InjectableMacroTests: XCTestCase {
                 }
             }
             """,
-            macros: initializableTestMacros
+            macros: injectableTestMacros
         )
         #else
         throw XCTSkip("macros are only supported when running tests for the host platform")

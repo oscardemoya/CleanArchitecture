@@ -36,6 +36,10 @@ struct MakeUseCaseMacro: DeclarationMacro {
         } else if let argument = repositoryTypes.argument.as(IdentifierTypeSyntax.self) {
             let type = argument.description.trimmed
             properties = [(name: type.asVariableName, type: type)]
+        } else if let argument = repositoryTypes.argument.as(SomeOrAnyTypeSyntax.self) {
+            let name = argument.constraint.description.asVariableName
+            let type = argument.description.trimmed
+            properties = [(name: name, type: type)]
         }
         
         guard !properties.isEmpty else {

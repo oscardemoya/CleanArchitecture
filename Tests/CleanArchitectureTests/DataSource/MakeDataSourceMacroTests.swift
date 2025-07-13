@@ -20,12 +20,12 @@ final class MakeDataSourceMacroTests: XCTestCase {
         assertMacroExpansion(
             """
             struct DataSourceFactory {
-                #MakeDataSource<AuthDataSource, RemoteDataSourceConfig>()
+                #MakeDataSource<any AuthDataSource, RemoteDataSourceConfig>()
             }
             """,
             expandedSource: """
             struct DataSourceFactory {
-                func makeAuthDataSource() -> AuthDataSource {
+                func makeAuthDataSource() -> any AuthDataSource {
                     DefaultAuthDataSource(configuration: remoteDataSourceConfig)
                 }
             }

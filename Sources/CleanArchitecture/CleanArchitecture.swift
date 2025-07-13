@@ -28,7 +28,7 @@ public macro Injectable<T>() = #externalMacro(module: "CleanArchitectureMacros",
 ///     public struct DataSourceFactory {
 ///         let remoteDataSourceConfig: RemoteDataSourceConfig
 ///
-///         #MakeDataSource<AuthDataSource, RemoteDataSourceConfig>()
+///         #MakeDataSource<any AuthDataSource, RemoteDataSourceConfig>()
 ///     }
 ///
 /// produces:
@@ -36,7 +36,7 @@ public macro Injectable<T>() = #externalMacro(module: "CleanArchitectureMacros",
 ///     public struct DataSourceFactory {
 ///         let remoteDataSourceConfig: RemoteDataSourceConfig
 ///
-///         func makeAuthDataSource() -> AuthDataSource {
+///         func makeAuthDataSource() -> any AuthDataSource {
 ///             return DefaultAuthDataSource(configuration: remoteDataSourceConfig)
 ///         }
 ///     }
