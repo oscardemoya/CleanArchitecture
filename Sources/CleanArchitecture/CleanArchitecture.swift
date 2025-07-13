@@ -1,8 +1,7 @@
 // The Swift Programming Language
 // https://docs.swift.org/swift-book
 
-/// A macro that produces an init of a RepositoryFactory struct
-/// with a property of given datasource factory type. For example:
+/// A macro that adds properties of a given set of protocols to be injected by its init method. For example:
 ///
 ///     @Injectable<RemoteDataSourceConfig>
 ///     public struct DataSourceFactory {
@@ -20,6 +19,25 @@
 ///
 @attached(member, names: arbitrary)
 public macro Injectable<T>() = #externalMacro(module: "CleanArchitectureMacros", type: "InjectableMacro")
+
+/// A macro that adda configuration property and its init method. For example:
+///
+///     @Configurable<RemoteDataSourceConfig>
+///     final class DefaultAuthDataSource: AuthDataSource {
+///     }
+///
+/// produces:
+///
+///     final class DefaultAuthDataSource: AuthDataSource {
+///         let configuration: RemoteDataSourceConfig
+///
+///         public init(configuration: RemoteDataSourceConfig) {
+///             self.configuration = configuration
+///         }
+///     }
+///
+@attached(member, names: arbitrary)
+public macro Configurable<T>() = #externalMacro(module: "CleanArchitectureMacros", type: "ConfigurableMacro")
 
 /// A macro that produces factory method of datasources for the clean architecture boilerplate.
 /// If no concrete datasource implementation is specified it will return an instance of a datasource

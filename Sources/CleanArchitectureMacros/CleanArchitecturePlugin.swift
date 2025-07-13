@@ -14,6 +14,7 @@ import SwiftSyntaxMacros
 struct CleanArchitecturePlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         InjectableMacro.self,
+        ConfigurableMacro.self,
         MakeDataSourceMacro.self,
         MakeRepositoryMacro.self,
         MakeUseCaseMacro.self,
