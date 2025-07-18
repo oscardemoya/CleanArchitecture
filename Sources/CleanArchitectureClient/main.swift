@@ -85,8 +85,7 @@ extension DataSourceFactory {
     init(environment: AppEnvironment = .current) {
         let apiClient = APIClient()
         self.init(
-            remoteDataSourceConfig: DefaultRemoteDataSourceConfig(apiClient: apiClient)/*,*/
-//            secureDataSourceConfig: DefaultSecureDataSourceConfig()
+            remoteDataSourceConfig: DefaultRemoteDataSourceConfig(apiClient: apiClient)
         )
     }
 }
@@ -104,11 +103,11 @@ protocol ServiceProvider {
     var profileService: ProfileService { get }
 }
 
-public protocol AuthService {
+protocol AuthService {
     func login(email: String, password: String) async throws -> User
 }
 
-public protocol ProfileService {
+protocol ProfileService {
     func profile(for user: User) async throws -> Profile
 }
 
@@ -181,18 +180,18 @@ final class DefaultProfileRepository: ProfileRepository {
     }
 }
 
-public protocol AuthRepository {
+protocol AuthRepository {
     var isLoggedIn: Bool { get }
     func login(email: String, password: String) async throws -> User
     func logout() async throws
 }
 
-public protocol ProfileRepository {
+protocol ProfileRepository {
     func profile(for user: User) async throws -> Profile
 }
 
-public struct User: Identifiable {
-    public var id: String
+struct User: Identifiable {
+    var id: String
     var email: String?
     var profile: Profile?
     
@@ -202,8 +201,8 @@ public struct User: Identifiable {
     }
 }
 
-public struct Profile: Identifiable {
-    public var id: String
+struct Profile: Identifiable {
+    var id: String
     var firstName: String?
     var lastName: String?
     
@@ -235,6 +234,18 @@ struct ProfileData: Identifiable {
         self.firstName = firstName
         self.lastName = lastName
     }
+}
+
+@ModelConvertible
+struct LoginCredentialsData: Codable {
+    @Convertible(key: "username")
+    let email: String
+    let password: String
+}
+
+struct LoginCredentials {
+    let username: String
+    let password: String
 }
 
 protocol AuthDataSource {

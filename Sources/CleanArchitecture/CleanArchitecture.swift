@@ -18,7 +18,10 @@
 ///     }
 ///
 @attached(member, names: arbitrary)
-public macro Injectable<T>() = #externalMacro(module: "CleanArchitectureMacros", type: "InjectableMacro")
+public macro Injectable<T>() = #externalMacro(
+    module: "CleanArchitectureMacros",
+    type: "InjectableMacro"
+)
 
 /// A macro that adda configuration property and its init method. For example:
 ///
@@ -37,7 +40,10 @@ public macro Injectable<T>() = #externalMacro(module: "CleanArchitectureMacros",
 ///     }
 ///
 @attached(member, names: arbitrary)
-public macro Configurable<T>() = #externalMacro(module: "CleanArchitectureMacros", type: "ConfigurableMacro")
+public macro Configurable<T>() = #externalMacro(
+    module: "CleanArchitectureMacros",
+    type: "ConfigurableMacro"
+)
 
 /// A macro that produces factory method of datasources for the clean architecture boilerplate.
 /// If no concrete datasource implementation is specified it will return an instance of a datasource
@@ -60,7 +66,10 @@ public macro Configurable<T>() = #externalMacro(module: "CleanArchitectureMacros
 ///     }
 ///
 @freestanding(declaration, names: arbitrary)
-public macro MakeDataSource<T, U>() = #externalMacro(module: "CleanArchitectureMacros", type: "MakeDataSourceMacro")
+public macro MakeDataSource<T, U>() = #externalMacro(
+    module: "CleanArchitectureMacros",
+    type: "MakeDataSourceMacro"
+)
 
 /// A macro that produces factory method of repositories for the clean architecture boilerplate.
 /// If no concrete repository implementation is specified it will return an instance of a repository
@@ -92,7 +101,10 @@ public macro MakeDataSource<T, U>() = #externalMacro(module: "CleanArchitectureM
 ///     }
 ///
 @freestanding(declaration, names: arbitrary)
-public macro MakeRepository<T>(_ type: Any.Type? = nil) = #externalMacro(module: "CleanArchitectureMacros", type: "MakeRepositoryMacro")
+public macro MakeRepository<T>(_ type: Any.Type? = nil) = #externalMacro(
+    module: "CleanArchitectureMacros",
+    type: "MakeRepositoryMacro"
+)
 
 /// A macro that produces factory method of use cases for the clean architecture boilerplate.
 /// A list of repository protocols joined by '&' should be passed in the generic clause
@@ -113,7 +125,10 @@ public macro MakeRepository<T>(_ type: Any.Type? = nil) = #externalMacro(module:
 ///     }
 ///
 @freestanding(declaration, names: arbitrary)
-public macro MakeUseCase<T, U>() = #externalMacro(module: "CleanArchitectureMacros", type: "MakeUseCaseMacro")
+public macro MakeUseCase<T, U>() = #externalMacro(
+    module: "CleanArchitectureMacros",
+    type: "MakeUseCaseMacro"
+)
 
 /// A macro that produces an init for the use cases of a service class using the factory use case container.
 /// Additionally, it creates a shared instance for this class. For example:
@@ -136,7 +151,10 @@ public macro MakeUseCase<T, U>() = #externalMacro(module: "CleanArchitectureMacr
 ///     }
 ///
 @attached(member, names: named(shared), named(init))
-public macro AppService<T>() = #externalMacro(module: "CleanArchitectureMacros", type: "AppServiceMacro")
+public macro AppService<T>() = #externalMacro(
+    module: "CleanArchitectureMacros",
+    type: "AppServiceMacro"
+)
 
 /// A macro that produces an init for the app services of a service container class.
 /// Additionally, it adds and initializes an property of UseCaseFactory. For example:
@@ -161,4 +179,81 @@ public macro AppService<T>() = #externalMacro(module: "CleanArchitectureMacros",
 ///     }
 ///
 @attached(member, names: named(useCaseFactory), named(init))
-public macro ServiceContainer() = #externalMacro(module: "CleanArchitectureMacros", type: "ServiceContainerMacro")
+public macro ServiceContainer() = #externalMacro(
+    module: "CleanArchitectureMacros",
+    type: "ServiceContainerMacro"
+)
+
+/// A macro that produces conversion methods for a data model to its corresponding domain entity.
+/// Adds `asDomainEntity` computed property a default init and an `init(entity:)` initializer. For example:
+///
+///     struct LoginCredentialsData {
+///         @Convertible(key: "username")
+///         let idNumber: String
+///         let password: String
+///     }
+///
+/// produces:
+///
+///     struct LoginCredentialsData {
+///         let idNumber: String
+///         let password: String
+///
+///         var asDomainEntity: LoginCredentials {
+///             .init(
+///                 username: idNumber,
+///                 password: password
+///             )
+///         }
+///
+///         init(idNumber: String, password: String) {
+///             self.idNumber = idNumber
+///             self.password = password
+///         }
+///
+///         init(entity: LoginCredentials) {
+///             self.init(
+///                 idNumber: entity.username,
+///                 password: entity.password
+///             )
+///         }
+///     }
+///
+@attached(member, names: named(asDomainEntity), named(init), named(init(entity:)))
+public macro ModelConvertible() = #externalMacro(
+    module: "CleanArchitectureMacros",
+    type: "ModelConvertibleMacro"
+)
+
+/// Marks a property for custom mapping between Data and Domain models
+/// when used in a model marked with `@ModelConvertible`.
+@attached(peer)
+public macro Convertible(key: String) = #externalMacro(
+    module: "CleanArchitectureMacros",
+    type: "ConvertibleMacro"
+)
+
+/// A macro that produces a default initializer for Domain models (Entities). For example:
+///
+///     struct LoginCredentials {
+///         let email: String
+///         let password: String
+///     }
+///
+/// produces:
+///
+///     struct LoginCredentials {
+///         let email: String
+///         let password: String
+///
+///         init(email: String, password: String) {
+///             self.email = email
+///             self.password = password
+///         }
+///     }
+///
+@attached(member, names: named(init))
+public macro Entity() = #externalMacro(
+    module: "CleanArchitectureMacros",
+    type: "EntityMacro"
+)

@@ -19,6 +19,9 @@ struct CleanArchitecturePlugin: CompilerPlugin {
         MakeRepositoryMacro.self,
         MakeUseCaseMacro.self,
         AppServiceMacro.self,
-        ServiceContainerMacro.self
+        ServiceContainerMacro.self,
+        ConvertibleMacro.self,
+        ModelConvertibleMacro.self,
+        EntityMacro.self,
     ]
 }
