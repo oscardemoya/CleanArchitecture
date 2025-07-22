@@ -37,4 +37,3 @@ final class MakeDataSourceMacroTests: XCTestCase {
         #endif
     }
 }
-

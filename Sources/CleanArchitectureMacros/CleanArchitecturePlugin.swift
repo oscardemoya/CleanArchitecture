@@ -15,13 +15,13 @@ struct CleanArchitecturePlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         InjectableMacro.self,
         ConfigurableMacro.self,
+        ConvertibleMacro.self,
+        ModelConvertibleMacro.self,
+        EntityMacro.self,
         MakeDataSourceMacro.self,
         MakeRepositoryMacro.self,
         MakeUseCaseMacro.self,
         AppServiceMacro.self,
-        ServiceContainerMacro.self,
-        ConvertibleMacro.self,
-        ModelConvertibleMacro.self,
-        EntityMacro.self,
+        ServiceContainerMacro.self
     ]
 }

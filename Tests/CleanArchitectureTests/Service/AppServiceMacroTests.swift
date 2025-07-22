@@ -42,4 +42,3 @@ final class AppServiceMacroTests: XCTestCase {
         #endif
     }
 }
-

@@ -38,4 +38,31 @@ final class EntityMacroTests: XCTestCase {
             macros: makeEntityTestMacros
         )
     }
+    
+    func testEntityWithOptionals() {
+        assertMacroExpansion(
+            """
+            @Entity
+            struct LoginCredentials {
+                let email: String
+                let firstName: String?
+                let lastName: String?
+            }
+            """,
+            expandedSource: """
+            struct LoginCredentials {
+                let email: String
+                let firstName: String?
+                let lastName: String?
+
+                init(email: String, firstName: String? = nil, lastName: String? = nil) {
+                    self.email = email
+                    self.firstName = firstName
+                    self.lastName = lastName
+                }
+            }
+            """,
+            macros: makeEntityTestMacros
+        )
+    }
 }

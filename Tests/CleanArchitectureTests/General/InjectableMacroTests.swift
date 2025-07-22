@@ -122,4 +122,3 @@ final class InjectableMacroTests: XCTestCase {
         #endif
     }
 }
-

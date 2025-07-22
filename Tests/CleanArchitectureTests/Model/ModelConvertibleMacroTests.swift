@@ -54,4 +54,48 @@ final class ModelConvertibleMacroTests: XCTestCase {
             macros: makeModelConvertibleTestMacros
         )
     }
+    
+    func testModelConvertibleWithOptionals() {
+        assertMacroExpansion(
+            """
+            @ModelConvertible
+            struct UserData {
+                @Convertible(key: "username")
+                let email: String
+                let firstName: String?
+                let lastName: String?
+            }
+            """,
+            expandedSource: """
+            struct UserData {
+                let email: String
+                let firstName: String?
+                let lastName: String?
+
+                var asDomainEntity: User {
+                    .init(
+                        username: email,
+                        firstName: firstName,
+                        lastName: lastName
+                    )
+                }
+
+                init(email: String, firstName: String? = nil, lastName: String? = nil) {
+                    self.email = email
+                    self.firstName = firstName
+                    self.lastName = lastName
+                }
+
+                init(entity: User) {
+                    self.init(
+                        email: entity.username,
+                        firstName: entity.firstName,
+                        lastName: entity.lastName
+                    )
+                }
+            }
+            """,
+            macros: makeModelConvertibleTestMacros
+        )
+    }
 }

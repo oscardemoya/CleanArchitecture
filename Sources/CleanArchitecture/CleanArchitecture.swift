@@ -156,8 +156,8 @@ public macro AppService<T>() = #externalMacro(
     type: "AppServiceMacro"
 )
 
-/// A macro that produces an init for the app services of a service container class.
-/// Additionally, it adds and initializes an property of UseCaseFactory. For example:
+/// A macro that produces an init for the app services of a service container class and initializes
+/// a property of UseCaseFactory. Additionally, it creates a view modifier, For example:
 ///
 ///     @ServiceContainer
 ///     final class ServiceContainer: ServiceProvider {
@@ -178,7 +178,18 @@ public macro AppService<T>() = #externalMacro(
 ///         }
 ///     }
 ///
+///     struct ServiceContainerModifier: ViewModifier {
+///         let serviceContainer = ServiceContainer(environment: .current)
+///
+///         func body(content: Content) -> some View {
+///         content
+///             .environment(\\.authService, serviceContainer.authService)
+///             .environment(\\.profileService, serviceContainer.profileService)
+///         }
+///     }
+///
 @attached(member, names: named(useCaseFactory), named(init))
+@attached(peer, names: named(serviceContainer), named(ServiceContainerModifier))
 public macro ServiceContainer() = #externalMacro(
     module: "CleanArchitectureMacros",
     type: "ServiceContainerMacro"
@@ -187,33 +198,34 @@ public macro ServiceContainer() = #externalMacro(
 /// A macro that produces conversion methods for a data model to its corresponding domain entity.
 /// Adds `asDomainEntity` computed property a default init and an `init(entity:)` initializer. For example:
 ///
+///     @ModelConvertible
 ///     struct LoginCredentialsData {
 ///         @Convertible(key: "username")
-///         let idNumber: String
+///         let email: String
 ///         let password: String
 ///     }
 ///
 /// produces:
 ///
 ///     struct LoginCredentialsData {
-///         let idNumber: String
+///         let email: String
 ///         let password: String
 ///
 ///         var asDomainEntity: LoginCredentials {
 ///             .init(
-///                 username: idNumber,
+///                 username: email,
 ///                 password: password
 ///             )
 ///         }
 ///
-///         init(idNumber: String, password: String) {
-///             self.idNumber = idNumber
+///         init(email: String, password: String) {
+///             self.email = email
 ///             self.password = password
 ///         }
 ///
 ///         init(entity: LoginCredentials) {
 ///             self.init(
-///                 idNumber: entity.username,
+///                 email: entity.username,
 ///                 password: entity.password
 ///             )
 ///         }
@@ -235,6 +247,7 @@ public macro Convertible(key: String) = #externalMacro(
 
 /// A macro that produces a default initializer for Domain models (Entities). For example:
 ///
+///     @Entity
 ///     struct LoginCredentials {
 ///         let email: String
 ///         let password: String

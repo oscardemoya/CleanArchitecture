@@ -65,4 +65,3 @@ final class ConfigurableMacroTests: XCTestCase {
         #endif
     }
 }
-

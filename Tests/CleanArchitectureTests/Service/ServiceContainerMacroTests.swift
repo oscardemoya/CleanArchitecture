@@ -19,7 +19,6 @@ final class ServiceContainerMacroTests: XCTestCase {
         #if canImport(CleanArchitectureMacros)
         assertMacroExpansion(
             """
-            @Observable
             @ServiceContainer
             final class ServiceContainer: ServiceProvider {
                 let authService: AuthService
@@ -27,7 +26,6 @@ final class ServiceContainerMacroTests: XCTestCase {
             }
             """,
             expandedSource: """
-            @Observable
             final class ServiceContainer: ServiceProvider {
                 let authService: AuthService
                 let profileService: ProfileService
@@ -38,6 +36,16 @@ final class ServiceContainerMacroTests: XCTestCase {
                     self.profileService = DefaultProfileService(useCaseFactory: useCaseFactory)
                 }
             }
+            
+            struct ServiceContainerModifier: ViewModifier {
+                let serviceContainer = ServiceContainer(environment: .current)
+
+                func body(content: Content) -> some View {
+                    content
+                        .environment(\\.authService, serviceContainer.authService)
+                        .environment(\\.profileService, serviceContainer.profileService)
+                }
+            }
             """,
             macros: serviceContainerTestMacros
         )
@@ -46,4 +54,3 @@ final class ServiceContainerMacroTests: XCTestCase {
         #endif
     }
 }
-

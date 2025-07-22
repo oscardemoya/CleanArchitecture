@@ -15,7 +15,7 @@ public struct EntityMacro: MemberMacro {
     struct PropertyInfo {
         let name: String
         let type: String
-        let domainKey: String
+        var isOptional: Bool { type.hasSuffix("?") || type.hasPrefix("Optional<") }
     }
     
     public static func expansion(
@@ -86,15 +86,14 @@ public struct EntityMacro: MemberMacro {
                 }
                 
                 let propertyName = pattern.identifier.text
-                var domainKey = propertyName
                 
                 // Get the type
-                let typeDescription = binding.typeAnnotation?.type.description.trimmingCharacters(in: .whitespaces) ?? "Any"
+                let typeDescription = binding.typeAnnotation?
+                    .type.description.trimmingCharacters(in: .whitespaces) ?? "Any"
                 
                 properties.append(PropertyInfo(
                     name: propertyName,
-                    type: typeDescription,
-                    domainKey: domainKey
+                    type: typeDescription
                 ))
             }
         }
@@ -104,7 +103,7 @@ public struct EntityMacro: MemberMacro {
     
     private static func generateDefaultInitParametersWithTypes(for properties: [PropertyInfo]) -> String {
         properties
-            .map { "\($0.name): \($0.type)" }
+            .map { "\($0.name): \($0.type)\($0.isOptional ? " = nil" : "")" }
             .joined(separator: ", ")
     }
     

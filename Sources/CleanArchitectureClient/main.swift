@@ -1,5 +1,6 @@
 import CleanArchitecture
 import Foundation
+import SwiftUI
 
 // MARK: General
 
@@ -69,6 +70,11 @@ final class DefaultProfileService: ProfileService {
 final class ServiceContainer: ServiceProvider {
     let authService: AuthService
     let profileService: ProfileService
+}
+
+extension EnvironmentValues {
+    @Entry var authService: AuthService?
+    @Entry var profileService: ProfileService?
 }
 
 // MARK: - Sample Source Code
