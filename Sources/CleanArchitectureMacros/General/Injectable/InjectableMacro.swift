@@ -15,6 +15,7 @@ struct InjectableMacro: MemberMacro {
     static func expansion(
         of node: AttributeSyntax,
         providingMembersOf declaration: some DeclGroupSyntax,
+        conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         let dependencyProperties = parseDependencyProperties(from: node)
