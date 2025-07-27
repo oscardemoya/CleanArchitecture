@@ -38,6 +38,11 @@ extension ModelConvertibleMacro {
                 return false
             }
             
+            // Exclude static properties
+            guard variableDecl.modifiers.allSatisfy({ $0.name.tokenKind != .keyword(.static) }) else {
+                return false
+            }
+            
             // Ensure it's not a computed property
             guard variableDecl.bindings.allSatisfy({ $0.accessorBlock == nil }) else {
                 return false

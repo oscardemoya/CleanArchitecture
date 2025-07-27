@@ -70,7 +70,9 @@ extension ModelConvertibleMacro {
         ) -> DeclSyntax {
             DeclSyntax(
             """
-            \(raw: accessLevel)init(\(raw: generateDefaultInitParametersWithTypes(for: properties))) {
+            \(raw: accessLevel)init(
+            \(raw: generateDefaultInitParametersWithTypes(for: properties))
+            ) {
                 \(raw: generateDefaultInitAssignments(for: properties))
             }
             """
@@ -95,8 +97,8 @@ extension ModelConvertibleMacro {
         
         private static func generateDefaultInitParametersWithTypes(for properties: [PropertyInfo]) -> String {
             properties
-                .map { "\($0.name): \($0.type)\($0.isOptional ? " = nil" : "")" }
-                .joined(separator: ", ")
+                .map { "    \($0.name): \($0.type)\($0.initDefaultValue)" }
+                .joined(separator: ",\n")
         }
         
         private static func generateDefaultInitAssignments(for properties: [PropertyInfo]) -> String {
@@ -107,13 +109,13 @@ extension ModelConvertibleMacro {
         
         private static func generateDomainInitializerArguments(for properties: [PropertyInfo]) -> String {
             properties
-                .map { "        \($0.domainKey): \($0.name)" }
+                .map { "        \($0.domainKey): \($0.asDomainEntity)" }
                 .joined(separator: ",\n")
         }
         
         private static func generateDTOInitializerArguments(for properties: [PropertyInfo]) -> String {
             properties
-                .map { "        \($0.name): entity.\($0.domainKey)" }
+                .map { "        \($0.name): \($0.asDataModel)" }
                 .joined(separator: ",\n")
         }
         

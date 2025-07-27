@@ -21,6 +21,7 @@ final class ModelConvertibleMacroTests: XCTestCase {
             """
             @ModelConvertible
             struct LoginCredentialsData {
+                static let shared = LoginCredentialsData()
                 @Convertible(key: "username")
                 let email: String
                 let password: String
@@ -28,6 +29,7 @@ final class ModelConvertibleMacroTests: XCTestCase {
             """,
             expandedSource: """
             struct LoginCredentialsData {
+                static let shared = LoginCredentialsData()
                 let email: String
                 let password: String
 
@@ -38,7 +40,10 @@ final class ModelConvertibleMacroTests: XCTestCase {
                     )
                 }
 
-                init(email: String, password: String) {
+                init(
+                    email: String = "",
+                    password: String = ""
+                ) {
                     self.email = email
                     self.password = password
                 }
@@ -62,35 +67,41 @@ final class ModelConvertibleMacroTests: XCTestCase {
             struct UserData {
                 @Convertible(key: "username")
                 let email: String
-                let firstName: String?
-                let lastName: String?
+                let name: String?
+                let roles: [RoleData]
             }
             """,
             expandedSource: """
             struct UserData {
                 let email: String
-                let firstName: String?
-                let lastName: String?
+                let name: String?
+                let roles: [RoleData]
 
                 var asDomainEntity: User {
                     .init(
                         username: email,
-                        firstName: firstName,
-                        lastName: lastName
+                        name: name,
+                        roles: roles.map(\\.asDomainEntity)
                     )
                 }
 
-                init(email: String, firstName: String? = nil, lastName: String? = nil) {
+                init(
+                    email: String = "",
+                    name: String? = nil,
+                    roles: [RoleData] = []
+                ) {
                     self.email = email
-                    self.firstName = firstName
-                    self.lastName = lastName
+                    self.name = name
+                    self.roles = roles
                 }
 
                 init(entity: User) {
                     self.init(
                         email: entity.username,
-                        firstName: entity.firstName,
-                        lastName: entity.lastName
+                        name: entity.name,
+                        roles: entity.roles.map {
+                            RoleData(entity: $0)
+                        }
                     )
                 }
             }

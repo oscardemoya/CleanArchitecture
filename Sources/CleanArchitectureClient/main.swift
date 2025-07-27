@@ -196,15 +196,11 @@ protocol ProfileRepository {
     func profile(for user: User) async throws -> Profile
 }
 
-struct User: Identifiable {
-    var id: String
+@Entity
+struct User: Identifiable, Equatable {
+    @EquatableKey var id: String
     var email: String?
     var profile: Profile?
-    
-    init(id: String, email: String? = nil) {
-        self.id = id
-        self.email = email
-    }
 }
 
 struct Profile: Identifiable {

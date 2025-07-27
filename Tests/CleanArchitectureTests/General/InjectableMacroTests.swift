@@ -20,14 +20,14 @@ final class InjectableMacroTests: XCTestCase {
         assertMacroExpansion(
             """
             @Injectable<AuthRepository>
-            struct EmailLoginUseCase {                
+            struct LoginUseCase {                
                 func execute(credentials: LoginCredentials) async throws -> AuthToken {
                     try await authRepository.login(credentials: credentials)
                 }
             }
             """,
             expandedSource: """
-            struct EmailLoginUseCase {                
+            struct LoginUseCase {                
                 func execute(credentials: LoginCredentials) async throws -> AuthToken {
                     try await authRepository.login(credentials: credentials)
                 }
@@ -53,14 +53,14 @@ final class InjectableMacroTests: XCTestCase {
         assertMacroExpansion(
             """
             @Injectable<any AuthRepository>
-            struct EmailLoginUseCase {                
+            struct LoginUseCase {                
                 func execute(credentials: LoginCredentials) async throws -> AuthToken {
                     try await authRepository.login(credentials: credentials)
                 }
             }
             """,
             expandedSource: """
-            struct EmailLoginUseCase {                
+            struct LoginUseCase {                
                 func execute(credentials: LoginCredentials) async throws -> AuthToken {
                     try await authRepository.login(credentials: credentials)
                 }
@@ -86,7 +86,7 @@ final class InjectableMacroTests: XCTestCase {
         assertMacroExpansion(
             """
             @Injectable<AuthRepository & TokenRepository>
-            struct EmailLoginUseCase {                
+            struct LoginUseCase {                
                 func execute(credentials: LoginCredentials) async throws -> AuthToken {
                     let token = try await authRepository.login(credentials: credentials)
                     try tokenRepository.save(token: token)
@@ -95,7 +95,7 @@ final class InjectableMacroTests: XCTestCase {
             }
             """,
             expandedSource: """
-            struct EmailLoginUseCase {                
+            struct LoginUseCase {                
                 func execute(credentials: LoginCredentials) async throws -> AuthToken {
                     let token = try await authRepository.login(credentials: credentials)
                     try tokenRepository.save(token: token)
@@ -112,6 +112,53 @@ final class InjectableMacroTests: XCTestCase {
                 ) {
                     self.authRepository = authRepository
                     self.tokenRepository = tokenRepository
+                }
+            }
+            """,
+            macros: injectableTestMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+    
+    func testInjectable_withMultipleTypesAndExistingProperty() throws {
+        #if canImport(CleanArchitectureMacros)
+        assertMacroExpansion(
+            """
+            @Injectable<AuthRepository & TokenRepository>
+            struct LoginUseCase {
+                private let saveAuthToken: SaveAuthTokenUseCase
+
+                func execute(credentials: LoginCredentials) async throws -> AuthToken {
+                    let token = try await authRepository.login(credentials: credentials)
+                    try tokenRepository.save(token: token)
+                    return token
+                }
+            }
+            """,
+            expandedSource: """
+            struct LoginUseCase {
+                private let saveAuthToken: SaveAuthTokenUseCase
+
+                func execute(credentials: LoginCredentials) async throws -> AuthToken {
+                    let token = try await authRepository.login(credentials: credentials)
+                    try tokenRepository.save(token: token)
+                    return token
+                }
+
+                private let authRepository: AuthRepository
+
+                private let tokenRepository: TokenRepository
+
+                public init(
+                    authRepository: AuthRepository,
+                    tokenRepository: TokenRepository,
+                    saveAuthToken: SaveAuthTokenUseCase
+                ) {
+                    self.authRepository = authRepository
+                    self.tokenRepository = tokenRepository
+                    self.saveAuthToken = saveAuthToken
                 }
             }
             """,

@@ -20,16 +20,21 @@ final class EntityMacroTests: XCTestCase {
             """
             @Entity
             struct LoginCredentials {
+                static let shared = LoginCredentialsData()
                 let email: String
                 let password: String
             }
             """,
             expandedSource: """
             struct LoginCredentials {
+                static let shared = LoginCredentialsData()
                 let email: String
                 let password: String
 
-                init(email: String, password: String) {
+                init(
+                    email: String = "",
+                    password: String = ""
+                ) {
                     self.email = email
                     self.password = password
                 }
@@ -55,7 +60,11 @@ final class EntityMacroTests: XCTestCase {
                 let firstName: String?
                 let lastName: String?
 
-                init(email: String, firstName: String? = nil, lastName: String? = nil) {
+                init(
+                    email: String = "",
+                    firstName: String? = nil,
+                    lastName: String? = nil
+                ) {
                     self.email = email
                     self.firstName = firstName
                     self.lastName = lastName
@@ -65,4 +74,50 @@ final class EntityMacroTests: XCTestCase {
             macros: makeEntityTestMacros
         )
     }
+    
+    func testLoginResponseWithEquatableKeys() throws {
+        assertMacroExpansion(
+            """
+            @Entity
+            public struct LoginResponse: Equatable {
+                @EquatableKey public var id: Int
+                @EquatableKey public var email: String
+                @EquatableKey public var username: String?
+                public var accessToken: String?
+                public var refreshToken: String?
+            }
+            """,
+            expandedSource: """
+            public struct LoginResponse: Equatable {
+                @EquatableKey public var id: Int
+                @EquatableKey public var email: String
+                @EquatableKey public var username: String?
+                public var accessToken: String?
+                public var refreshToken: String?
+
+                public init(
+                    id: Int = 0,
+                    email: String = "",
+                    username: String? = nil,
+                    accessToken: String? = nil,
+                    refreshToken: String? = nil
+                ) {
+                    self.id = id
+                    self.email = email
+                    self.username = username
+                    self.accessToken = accessToken
+                    self.refreshToken = refreshToken
+                }
+
+                public static func == (lhs: Self, rhs: Self) -> Bool {
+                    lhs.id == rhs.id &&
+                    lhs.email == rhs.email &&
+                    lhs.username == rhs.username
+                }
+            }
+            """,
+            macros: makeEntityTestMacros
+        )
+    }
+        
 }

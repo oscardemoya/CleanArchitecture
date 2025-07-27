@@ -16,11 +16,8 @@ struct MakeUseCaseMacro: DeclarationMacro {
         of node: some FreestandingMacroExpansionSyntax,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        
-        // Extract the repository protocol types and use case type (e.g., <AuthRepository, LoginUseCase>)
-        guard let genericArguments = node.genericArgumentClause?.arguments, genericArguments.count == 2,
-              let repositoryTypes = genericArguments.first,
-              let useCaseType = genericArguments.last?.argument.description else {
+        guard let genericArguments = node.genericArgumentClause?.arguments,
+              genericArguments.count >= 2 else {
             let diagnostic = Diagnostic(
                 node: node,
                 message: MakeUseCaseDiagnostic.invalidArguments
@@ -29,20 +26,12 @@ struct MakeUseCaseMacro: DeclarationMacro {
             return []
         }
         
-        var properties = [(name: String, type: String)]()
-        if let composition = repositoryTypes.argument.as(CompositionTypeSyntax.self) {
-            let types = composition.elements.compactMap { $0.type.description.trimmed }
-            properties = types.map { (name: $0.asVariableName, type: $0) }
-        } else if let argument = repositoryTypes.argument.as(IdentifierTypeSyntax.self) {
-            let type = argument.description.trimmed
-            properties = [(name: type.asVariableName, type: type)]
-        } else if let argument = repositoryTypes.argument.as(SomeOrAnyTypeSyntax.self) {
-            let name = argument.constraint.description.asVariableName
-            let type = argument.description.trimmed
-            properties = [(name: name, type: type)]
-        }
+        let repositoryTypes = genericArguments.first!
+        let useCaseType = genericArguments.dropFirst().first!.argument.description.trimmed
+        let additionalDependencies = Array(genericArguments.dropFirst(2))
         
-        guard !properties.isEmpty else {
+        let repositoryProperties = parseRepositoryProperties(from: repositoryTypes)
+        guard !repositoryProperties.isEmpty else {
             let diagnostic = Diagnostic(
                 node: node,
                 message: MakeUseCaseDiagnostic.noRepositoryProtocol
@@ -51,24 +40,89 @@ struct MakeUseCaseMacro: DeclarationMacro {
             return []
         }
         
-        let repositoryInits = properties
-            .map { "let \($0.name) = repositoryFactory.make\($0.type)()"}
+        let useCaseProperties = parseUseCaseProperties(from: additionalDependencies)
+        
+        let repositoryInits = generateRepositoryInits(from: repositoryProperties)
+        let useCaseInits = generateUseCaseInits(from: useCaseProperties)
+        let funcArgs = makeFuncArgs(repositoryProperties + useCaseProperties)
+        
+        let factoryDecl = makeFactoryDecl(for: useCaseType,
+                                          repoInits: repositoryInits,
+                                          useCaseInits: useCaseInits,
+                                          funcArgs: funcArgs)
+        
+        let factoryFunctionSyntax = DeclSyntax(stringLiteral: factoryDecl)
+        
+        return [factoryFunctionSyntax]
+    }
+    
+    // MARK: - Private Helpers
+    
+    private static func parseRepositoryProperties(
+        from repositoryTypes: GenericArgumentSyntax
+    ) -> [(name: String, type: String)] {
+        var repositoryProperties = [(name: String, type: String)]()
+        if let composition = repositoryTypes.argument.as(CompositionTypeSyntax.self) {
+            let types = composition.elements.compactMap { $0.type.description.trimmed }
+            repositoryProperties = types.map { (name: $0.asVariableName, type: $0) }
+        } else if let argument = repositoryTypes.argument.as(IdentifierTypeSyntax.self) {
+            let type = argument.description.trimmed
+            repositoryProperties = [(name: type.asVariableName, type: type)]
+        } else if let argument = repositoryTypes.argument.as(SomeOrAnyTypeSyntax.self) {
+            let name = argument.constraint.description.asVariableName
+            let type = argument.description.trimmed
+            repositoryProperties = [(name: name, type: type)]
+        }
+        return repositoryProperties
+    }
+    
+    private static func parseUseCaseProperties(
+        from additionalDependencies: [GenericArgumentSyntax]
+    ) -> [(name: String, type: String)] {
+        var useCaseProperties = [(name: String, type: String)]()
+        for dependency in additionalDependencies {
+            let dependencyType = dependency.argument.description.trimmed
+            let propertyName = dependencyType.asVariableName
+            useCaseProperties.append((name: propertyName, type: dependencyType))
+        }
+        return useCaseProperties
+    }
+    
+    private static func generateRepositoryInits(from repositoryProperties: [(name: String, type: String)]) -> String {
+        repositoryProperties
+            .map { "let \($0.name) = repositoryFactory.make\($0.type)()" }
             .joined(separator: "\n    ")
+    }
+    
+    private static func generateUseCaseInits(from useCaseProperties: [(name: String, type: String)]) -> String {
+        useCaseProperties
+            .map { "let \($0.name) = make\($0.type)()" }
+            .joined(separator: "\n    ")
+    }
+    
+    private static func makeFuncArgs(_ properties: [(name: String, type: String)]) -> String {
+        properties.map { "\($0.name): \($0.name)" }.joined(separator: ",\n        ")
+    }
+    
+    private static func makeFactoryDecl(
+        for useCaseType: String, repoInits: String, useCaseInits: String, funcArgs: String
+    ) -> String {
+        var allInits = [String]()
+        if !repoInits.isEmpty {
+            allInits.append(repoInits)
+        }
+        if !useCaseInits.isEmpty {
+            allInits.append(useCaseInits)
+        }
+        let combinedInits = allInits.joined(separator: "\n    ")
         
-        // Extract the concrete repository implementation (e.g., DefaultAuthUseCase)
-        let funcArgs = properties.map { "\($0.name): \($0.name)" }.joined(separator: ", ")
-        
-        // Generate the factory struct code
-        let factoryDecl = """
+        return """
         public func make\(useCaseType)() -> \(useCaseType) {
-            \(repositoryInits)
-            return \(useCaseType)(\(funcArgs))
+            \(combinedInits)
+            return \(useCaseType)(
+                \(funcArgs)
+            )
         }
         """
-        
-        // Parse the generated class, protocol, and method into SwiftSyntax
-        let factoryStructSyntax = DeclSyntax(stringLiteral: factoryDecl)
-        
-        return [factoryStructSyntax]
     }
 }

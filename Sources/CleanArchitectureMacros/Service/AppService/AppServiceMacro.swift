@@ -51,7 +51,7 @@ struct AppServiceMacro: MemberMacro {
         
         // Generate factory initialization for use cases
         let useCaseInitAssignments = properties.compactMap { property -> String? in
-            guard property.name.localizedCaseInsensitiveContains("UseCase") else { return nil }
+            guard property.type.localizedCaseInsensitiveContains("UseCase") else { return nil }
             return "self.\(property.name) = useCaseFactory.make\(property.type)()"
         }.joined(separator: "\n")
         
